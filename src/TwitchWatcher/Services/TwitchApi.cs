@@ -28,9 +28,6 @@ namespace TwitchWatcher.Services
         {
             var token = await _auth.GetTokenAsync(ct);
 
-            //var request = new HttpRequestMessage(HttpMethod.Get, $"users?login={login}");
-            //request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            //request.Headers.Add("Client-Id", _options.ClientId);
             var request = BuildUserRequest(login, token);
 
             var client = _httpClientFactory.CreateClient("TwitchHelix");

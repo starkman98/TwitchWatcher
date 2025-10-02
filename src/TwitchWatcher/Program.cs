@@ -35,20 +35,5 @@ builder.Services.AddHostedService<StreamWatcher>();
 
 var host = builder.Build();
 
-//using (var scope = host.Services.CreateScope())
-//{
-//    var auth = scope.ServiceProvider.GetRequiredService<ITwitchAuthService>();
-//    var token = await auth.GetTokenAsync();
-//    Console.WriteLine($"Got token length: {token.Length}");
-
-//    var api = scope.ServiceProvider.GetRequiredService<ITwitchApi>();
-//    var options = scope.ServiceProvider.GetRequiredService<IOptions<AppOptions>>().Value;
-
-//    var userId = await api.GetUserIdAsync(options.ChannelName);
-//    var live = await api.IsLiveAsync(userId);
-
-//    Console.WriteLine($"User: {options.ChannelName}, Live? {live}");
-
-//}
 
 host.Run();
