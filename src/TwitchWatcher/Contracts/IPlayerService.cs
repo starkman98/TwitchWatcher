@@ -6,7 +6,7 @@ namespace TwitchWatcher.Contracts
 {
     public interface IPlayerService
     {
-        Task OpenAsync(Uri url, CancellationToken ct);
-        Task CloseAsync(CancellationToken ct);
+        Task OpenAsync(Uri url, CancellationToken ct = default);
+        Task CloseAsync(CancellationToken ct = default);
     }
 }

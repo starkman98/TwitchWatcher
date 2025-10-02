@@ -6,7 +6,7 @@ namespace TwitchWatcher.Contracts
 {
     public interface ITwitchApi
     {
-        Task<string> GetUserIdAsync(string login, CancellationToken ct);
-        Task<bool> CloseAsync(CancellationToken ct);
+        Task<string> GetUserIdAsync(string login, CancellationToken ct = default);
+        Task<bool> IsLiveAsync(string userId, CancellationToken ct = default);
     }
 }
