@@ -17,6 +17,7 @@ namespace TwitchWatcher.Services
         private readonly AppOptions _options;
         string? _profilePath = string.Empty;
         
+        
         public PlayerService(IOptions<AppOptions> options, ILogger<PlayerService> logger)
         {
             _options = options.Value;

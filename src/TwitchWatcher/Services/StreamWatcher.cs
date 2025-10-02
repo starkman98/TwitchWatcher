@@ -84,11 +84,10 @@ namespace TwitchWatcher.Services
                 {
                     var isLive = await _api.IsLiveAsync(_userId, ct);
                     var next = isLive ? StreamState.Live : StreamState.Offline;
-                    //_state = isLive ? StreamState.Live : StreamState.Offline;
 
-                    if (_state == StreamState.Offline && next == StreamState.Live)
+                    if (next == StreamState.Live)
                     {
-                        _log.LogInformation("## Transition Offline → Live. Opening stream…");
+                        _log.LogInformation("## Stream is live, opening stream if its not already opened");
                         await _player.OpenAsync(new Uri($"https://twitch.tv/{channel}"));
                     }
                     else if (_state == StreamState.Live && next == StreamState.Offline)
@@ -96,6 +95,7 @@ namespace TwitchWatcher.Services
                         _log.LogInformation("## Transition Live → Offline. Closing stream…");
                         await _player.CloseAsync(ct);
                     }
+
 
                     if (_state == StreamState.Unknown)
                     {
