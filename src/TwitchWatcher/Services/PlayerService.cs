@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Management;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Channels;
@@ -15,20 +16,42 @@ namespace TwitchWatcher.Services
     {
         private Process? _process;
         private readonly AppOptions _options;
-        string? _profilePath = string.Empty;
-        
-        
-        public PlayerService(IOptions<AppOptions> options, ILogger<PlayerService> logger)
+        private string? _profilePath = string.Empty;
+        private readonly ILogger<PlayerService> _log;
+
+        public bool IsOpen
         {
-            _options = options.Value;
+            get
+            {
+                if (_process != null && !_process.HasExited)
+                    return true;
+
+                if (string.IsNullOrEmpty(_profilePath))
+                    return false;
+
+                var pid = TryFindChromePidForProfile(_profilePath);
+                return pid.HasValue;
+            }
         }
 
-        public Task OpenAsync(Uri url, CancellationToken ct)
+
+        public PlayerService(IOptions<AppOptions> options, ILogger<PlayerService> log)
         {
-            if (_process != null && !_process.HasExited) return Task.CompletedTask;
+            _options = options.Value;
+            _log = log;
+        }
+
+        public async Task OpenAsync(Uri url, CancellationToken ct)
+        {
+            _log.LogInformation("## OpenAsync: IsOpen={IsOpen}, Profile={Profile}", IsOpen, _profilePath);
+
+            if (IsOpen) return;
+            
+            if (_process != null && !_process.HasExited) return;
 
             var channel = _options.ChannelName;
             var profilePath = GetProfilePath(channel);
+            _profilePath = profilePath;
             Directory.CreateDirectory(profilePath);
 
             var args = new List<string>
@@ -36,7 +59,9 @@ namespace TwitchWatcher.Services
                 "--new-window",
                 $"--user-data-dir=\"{profilePath}\"",
                 "--no-first-run",
-                "--no-default-browser-check"
+                "--no-default-browser-check",
+                "--disable-background-mode",
+                "--disable-features=RendererCodeIntegrity"
             };
 
             if (_options.OpenInAppWindow)
@@ -56,7 +81,19 @@ namespace TwitchWatcher.Services
             };
 
             _process = Process.Start(processStartInfo);
-            return Task.CompletedTask;
+
+            await Task.Delay(1000, ct);
+
+            if (!string.IsNullOrEmpty(_profilePath))
+            {
+                var pid = TryFindChromePidForProfile(_profilePath);
+                if (pid is int realPid)
+                {
+                    _log.LogInformation("## Reattached to PID {Pid} for profile {Profile}", realPid, _profilePath);
+                    try { _process = Process.GetProcessById(realPid); } catch { /* ignore */ }
+                }
+            }
+            return;
         }
 
         public Task CloseAsync(CancellationToken ct)
@@ -65,9 +102,31 @@ namespace TwitchWatcher.Services
             {
                 _process.CloseMainWindow();
                 if (!_process.WaitForExit(5000)) _process.Kill();
+                return Task.CompletedTask;
             }
+
+            if (!string.IsNullOrEmpty(_profilePath))
+            {
+                var pid = TryFindChromePidForProfile(_profilePath);
+                if (pid is int p)
+                {
+                    try
+                    {
+                        using var proc = Process.GetProcessById(p);
+                        if (!proc.HasExited)
+                        {
+                            proc.CloseMainWindow();
+                            if (!proc.WaitForExit(5000)) proc.Kill();
+                        }
+                    }
+                    catch { /* ignore */ }
+                }
+            }
+
             _process = null;
             return Task.CompletedTask;
+
+
         }
 
         private static string NormalizeChannel(string channel)
@@ -91,6 +150,29 @@ namespace TwitchWatcher.Services
                 : Path.GetFullPath(configuredRoot);
             var safeChannel = NormalizeChannel(channel);
             return Path.Combine(root, safeChannel);
+        }
+
+        private int? TryFindChromePidForProfile(string profilePath)
+        {
+            try
+            {
+                // WMI query gives us CommandLine for each chrome.exe process
+                using var searcher = new ManagementObjectSearcher(
+                    "SELECT ProcessId, CommandLine FROM Win32_Process WHERE Name='chrome.exe'");
+                foreach (ManagementObject mo in searcher.Get())
+                {
+                    var cmd = (string?)mo["CommandLine"] ?? string.Empty;
+                    if (cmd.IndexOf(profilePath, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return Convert.ToInt32(mo["ProcessId"]);
+                    }
+                }
+            }
+            catch
+            {
+                // Swallow and treat as "not found"
+            }
+            return null;
         }
     }
 }

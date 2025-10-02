@@ -8,5 +8,6 @@ namespace TwitchWatcher.Contracts
     {
         Task OpenAsync(Uri url, CancellationToken ct = default);
         Task CloseAsync(CancellationToken ct = default);
+        bool IsOpen { get; }
     }
 }

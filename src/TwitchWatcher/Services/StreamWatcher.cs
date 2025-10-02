@@ -85,7 +85,7 @@ namespace TwitchWatcher.Services
                     var isLive = await _api.IsLiveAsync(_userId, ct);
                     var next = isLive ? StreamState.Live : StreamState.Offline;
 
-                    if (next == StreamState.Live)
+                    if (next == StreamState.Live && !_player.IsOpen)
                     {
                         _log.LogInformation("## Stream is live, opening stream if its not already opened");
                         await _player.OpenAsync(new Uri($"https://twitch.tv/{channel}"));
