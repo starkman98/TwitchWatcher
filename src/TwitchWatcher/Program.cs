@@ -13,7 +13,8 @@ using static System.Net.WebRequestMethods;
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { ContentRootPath = AppContext.BaseDirectory});
 
 builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false)
+    .AddJsonFile("appsettings.json", optional: false,reloadOnChange: true)
+    .AddJsonFile("channels.json", optional: false, reloadOnChange: true)
     .AddUserSecrets<Program>()   // pulls in what you set above
     .AddEnvironmentVariables();
 
@@ -29,7 +30,11 @@ builder.Services.AddSingleton<ITwitchApi, TwitchApi>();
 
 builder.Services.AddSingleton<IPlayerService, PlayerService>();
 
-builder.Services.AddHostedService<StreamWatcher>();
+//builder.Services.AddHostedService<StreamWatcher>();
+
+builder.Services.AddSingleton<IPlayerFactory, PlayerFactory>();
+
+builder.Services.AddHostedService<MultiChannelWatcher>();
 
 
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
+
 namespace TwitchWatcher.Configuration
 {
     public class AppOptions
@@ -12,5 +13,8 @@ namespace TwitchWatcher.Configuration
         public int PollIntervalSeconds { get; set; } = 30;
         public string ChromePath { get; set; } = string.Empty;
         public bool OpenInAppWindow { get; set; } = true;
+        public string? ProfileRootPath { get; set; } = string.Empty;
+
+        public List<ChannelConfig> Channels { get; set; } = new();
     }
 }

@@ -16,6 +16,7 @@ namespace TwitchWatcher.Services
     {
         private Process? _process;
         private readonly AppOptions _options;
+        private readonly string _login;
         private string? _profilePath = string.Empty;
         private readonly ILogger<PlayerService> _log;
 
@@ -41,6 +42,14 @@ namespace TwitchWatcher.Services
             _log = log;
         }
 
+        public PlayerService(IOptions<AppOptions> options, ILogger<PlayerService> log, string login, string profilePath)
+        {
+            _options = options.Value;
+            _log = log;
+            _login = login;
+            _profilePath = profilePath;
+        }
+
         public async Task OpenAsync(Uri url, CancellationToken ct)
         {
             _log.LogInformation("## OpenAsync: IsOpen={IsOpen}, Profile={Profile}", IsOpen, _profilePath);
@@ -50,14 +59,14 @@ namespace TwitchWatcher.Services
             if (_process != null && !_process.HasExited) return;
 
             var channel = _options.ChannelName;
-            var profilePath = GetProfilePath(channel);
-            _profilePath = profilePath;
-            Directory.CreateDirectory(profilePath);
+            //var profilePath = GetProfilePath(channel);
+            //_profilePath = profilePath;
+            Directory.CreateDirectory(_profilePath);
 
             var args = new List<string>
             {
                 "--new-window",
-                $"--user-data-dir=\"{profilePath}\"",
+                $"--user-data-dir=\"{_profilePath}\"",
                 "--no-first-run",
                 "--no-default-browser-check",
                 "--disable-background-mode",
