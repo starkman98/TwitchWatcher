@@ -1,15 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.31903.59
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11109.219
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwitchWatcher", "src\TwitchWatcher\TwitchWatcher.csproj", "{713FFB82-EBF9-4823-BDB0-B42F731E9FAB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwitchWatcher.Core", "src\TwitchWatcher\TwitchWatcher.Core.csproj", "{713FFB82-EBF9-4823-BDB0-B42F731E9FAB}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwitchWatcher.Tests", "tests\TwitchWatcher.Tests\TwitchWatcher.Tests.csproj", "{7179A25A-06E1-499F-9EC0-79E0C6C566FF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TwitchWatcher.WPF", "src\TwitchWatcher.WPF\TwitchWatcher.WPF.csproj", "{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,18 @@ Global
 		{7179A25A-06E1-499F-9EC0-79E0C6C566FF}.Release|x64.Build.0 = Release|Any CPU
 		{7179A25A-06E1-499F-9EC0-79E0C6C566FF}.Release|x86.ActiveCfg = Release|Any CPU
 		{7179A25A-06E1-499F-9EC0-79E0C6C566FF}.Release|x86.Build.0 = Release|Any CPU
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}.Debug|x64.Build.0 = Debug|Any CPU
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}.Debug|x86.Build.0 = Debug|Any CPU
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}.Release|x64.ActiveCfg = Release|Any CPU
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}.Release|x64.Build.0 = Release|Any CPU
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}.Release|x86.ActiveCfg = Release|Any CPU
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,5 +66,9 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{713FFB82-EBF9-4823-BDB0-B42F731E9FAB} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{7179A25A-06E1-499F-9EC0-79E0C6C566FF} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{7C9AD6CB-18AB-41BD-9A14-AF8E967A286C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AC9FC50D-1A3F-45C7-8FE0-BD3CC5060272}
 	EndGlobalSection
 EndGlobal

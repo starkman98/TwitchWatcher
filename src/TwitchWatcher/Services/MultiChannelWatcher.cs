@@ -6,16 +6,19 @@ using System.Collections.Generic;
 using System.Text;
 using TwitchWatcher.Configuration;
 using TwitchWatcher.Contracts;
+using TwitchWatcher.Core.Contracts;
 using TwitchWatcher.Models;
 
 namespace TwitchWatcher.Services
 {
-    public class MultiChannelWatcher : BackgroundService
+    public class MultiChannelWatcher : BackgroundService , IChannelStateUpdater
     {
         private readonly ITwitchApi _api;
         private readonly IPlayerFactory _playerFactory;
         private readonly IOptionsMonitor<AppOptions> _options;
         private readonly ILogger<MultiChannelWatcher> _log;
+
+        private readonly IChannelStateUpdater _channelStateUpdater;
         
         private readonly Dictionary<string, string> _userIds = new();
         private readonly Dictionary<string, StreamState> _states = new();
@@ -25,12 +28,18 @@ namespace TwitchWatcher.Services
 
         private TimeSpan PollInterval => TimeSpan.FromSeconds(Math.Max(5, _options.CurrentValue.PollIntervalSeconds));
 
-        public MultiChannelWatcher(ITwitchApi api, IPlayerFactory playerFactory, IOptionsMonitor<AppOptions> options, ILogger<MultiChannelWatcher> log)
+        public MultiChannelWatcher(
+            ITwitchApi api,
+            IPlayerFactory playerFactory,
+            IOptionsMonitor<AppOptions> options,
+            ILogger<MultiChannelWatcher> log,
+            IChannelStateUpdater channelStateUpdater)
         {
             _api = api;
             _playerFactory = playerFactory;
             _options = options;
             _log = log;
+            _channelStateUpdater = channelStateUpdater;
         }
 
         protected override async Task ExecuteAsync(CancellationToken ct)
@@ -145,9 +154,15 @@ namespace TwitchWatcher.Services
                     _log.LogInformation("## [{Login}] Initial state = {state}", login, next);
                 }
 
-                _log.LogInformation("## [{Login}] is still {state}", login, _states[login]);
+                if (_states[login] != StreamState.Unknown)
+                {
+                    _log.LogInformation("## [{Login}] is still {state}", login, _states[login]);
+                }
 
                 _states[login] = next;
+
+                _channelStateUpdater.UpdateChannelState(login, next);
+
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -157,6 +172,11 @@ namespace TwitchWatcher.Services
             {
                 _log.LogInformation(ex, "## [{Login}] Poll failed, will retry.", login);
             }
+        }
+
+        public void UpdateChannelState(string a, StreamState b)
+        {
+
         }
     }
 }

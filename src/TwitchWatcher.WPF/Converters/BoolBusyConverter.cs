@@ -2,10 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace TwitchWatcher.Contracts
+namespace TwitchWatcher.WPF.Converters
 {
-    public interface IOptionsMonitor
+    internal class BoolBusyConverter
     {
-
     }
 }
