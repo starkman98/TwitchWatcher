@@ -6,7 +6,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-	  <ApplicationIcon>Assets\Icons\stream.ico</ApplicationIcon>
+	<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+	<PublishSingleFile>true</PublishSingleFile>
+	<PublishTrimmed>false</PublishTrimmed>
+	<SelfContained>true</SelfContained>
+	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+	<ApplicationIcon>Assets\Icons\stream.ico</ApplicationIcon>
+	<StartupObject>TwitchWatcher.WPF.Program</StartupObject>
+	<UserSecretsId>b2aa5897-65cb-4907-938a-ac52978ce121</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

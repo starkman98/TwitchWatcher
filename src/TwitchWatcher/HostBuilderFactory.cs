@@ -12,16 +12,19 @@ namespace TwitchWatcher.Core
 {
     public static class HostBuilderFactory
     {
-        public static IHostBuilder CreateHostBuilder(string basePath, Action<HostBuilderContext, IServiceCollection>? configureExtras = null)
+        public static IHostBuilder CreateHostBuilder(string basePath, Action<HostBuilderContext, IServiceCollection>? configureExtras = null,
+            Action<HostBuilderContext, IConfigurationBuilder>? configureConfigExtras = null)
         {
             return Host.CreateDefaultBuilder()
-                .ConfigureAppConfiguration(cfg =>
+                .ConfigureAppConfiguration((ctx, cfg) =>
                 {
                     cfg.SetBasePath(basePath);
-                    cfg.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                    cfg.AddJsonFile("channels.json", optional: false, reloadOnChange: true);
-                    cfg.AddUserSecrets(typeof(HostBuilderFactory).Assembly, optional: false);
+                    cfg.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+                    cfg.AddJsonFile("channels.json", optional: true, reloadOnChange: true);
+                    //cfg.AddUserSecrets(typeof(HostBuilderFactory).Assembly, optional: false);
                     cfg.AddEnvironmentVariables();
+
+                    configureConfigExtras?.Invoke(ctx, cfg);
                 })
                 .ConfigureServices((ctx, services) =>
                 {

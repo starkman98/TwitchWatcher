@@ -16,6 +16,7 @@ using TwitchWatcher.WPF.Infrastructure.Configuration;
 using System.DirectoryServices.ActiveDirectory;
 using TwitchWatcher.Models;
 using TwitchWatcher.Core.Contracts;
+using TwitchWatcher.Services;
 
 namespace TwitchWatcher.WPF.ViewModels
 {
@@ -96,6 +97,8 @@ namespace TwitchWatcher.WPF.ViewModels
                 .ToList();
             });
             CommandManager.InvalidateRequerySuggested();
+
+            
         }
 
         public void UpdateChannelState(string login, StreamState state)

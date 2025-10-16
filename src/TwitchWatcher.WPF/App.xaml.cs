@@ -28,29 +28,45 @@ namespace TwitchWatcher.WPF
 
         public App()
         {
-            AppHost = HostBuilderFactory.CreateHostBuilder(AppContext.BaseDirectory, (ctx, services) =>
-            {
-                services.Configure<AppOptions>(ctx.Configuration.GetSection("App"));
-                services.AddSingleton<IWritableOptions<AppOptions>>(sp =>
-                new JsonWritableOptions<AppOptions>(
-                    (IConfigurationRoot)sp.GetRequiredService<IConfiguration>(),
-                    "App",
-                    Path.Combine(AppContext.BaseDirectory, "channels.json")));
+            AppHost = HostBuilderFactory.CreateHostBuilder(AppContext.BaseDirectory,
+                configureConfigExtras: (ctx, cfg) =>
+                {
+                    cfg.AddUserSecrets<App>(optional: true);
+                },
+                configureExtras: (ctx, services) =>
+                {
+                    services.Configure<AppOptions>(ctx.Configuration.GetSection("App"));
+                    services.AddSingleton<IWritableOptions<AppOptions>>(sp =>
+                    new JsonWritableOptions<AppOptions>(
+                        (IConfigurationRoot)sp.GetRequiredService<IConfiguration>(),
+                        "App",
+                        Path.Combine(AppContext.BaseDirectory, "channels.json")));
 
-                services.AddSingleton<MainViewModel>();
-                services.AddSingleton<MainWindow>();
-                services.AddSingleton<IChannelStateUpdater>(sp => sp.GetRequiredService<MainViewModel>());
-            }).Build();
+                    services.AddSingleton<MainViewModel>();
+                    services.AddSingleton<MainWindow>();
+                    services.AddSingleton<IChannelStateUpdater>(sp => sp.GetRequiredService<MainViewModel>());
+                }).Build();
+
         }
 
         protected override async void OnStartup(StartupEventArgs e)
         {
-            await AppHost.StartAsync();
+            try
+            {
+                await AppHost.StartAsync();
 
-            var win = AppHost.Services.GetRequiredService<MainWindow>();
-            MainWindow = win;
-            win.Show();
-            base.OnStartup(e);
+                var win = AppHost.Services.GetRequiredService<MainWindow>();
+                MainWindow = win;
+                win.Show();
+                base.OnStartup(e);
+
+            }
+            catch (Exception ex)
+            {
+                File.WriteAllText("startup-error.txt", ex.ToString());
+                MessageBox.Show("startup error: " + ex.Message);
+                Shutdown();
+            }
         }
 
         protected override async void OnExit(ExitEventArgs e)
