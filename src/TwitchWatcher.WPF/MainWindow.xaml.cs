@@ -10,6 +10,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using TwitchWatcher.Configuration;
 using TwitchWatcher.Contracts;
+using TwitchWatcher.WPF.Themes;
 using TwitchWatcher.WPF.ViewModels;
 
 namespace TwitchWatcher.WPF
@@ -23,6 +24,12 @@ namespace TwitchWatcher.WPF
         {
             InitializeComponent();
             DataContext = vm;
+            Loaded += (_, __) => WindowThemeHelper.EnableDarkTitleBar(this);
+        }
+
+        private void DataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
         }
     }
 }
