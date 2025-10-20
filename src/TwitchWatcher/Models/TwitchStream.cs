@@ -15,6 +15,8 @@ namespace TwitchWatcher.Models
         public string Type { get; set; }
         [JsonPropertyName("title")]
         public string Title { get; set; }
+        [JsonPropertyName("profile_image_url")]
+        public string ImageUrl { get; set; }
 
     }
 }

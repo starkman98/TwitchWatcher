@@ -20,7 +20,7 @@ using TwitchWatcher.Services;
 
 namespace TwitchWatcher.WPF.ViewModels
 {
-    public partial class MainViewModel : ViewModelBase , IChannelStateUpdater
+    public partial class MainViewModel : ViewModelBase , IChannelStateUpdater, IChannelTitleUpdater, IChannelImageUrlUpdater
     {
         private readonly IOptionsMonitor<AppOptions> _monitor;
         private readonly IWritableOptions<AppOptions> _writable;
@@ -97,7 +97,7 @@ namespace TwitchWatcher.WPF.ViewModels
                 .ToList();
             });
             CommandManager.InvalidateRequerySuggested();
-
+            
             
         }
 
@@ -113,6 +113,36 @@ namespace TwitchWatcher.WPF.ViewModels
             if (channel != null)
             {
                 channel.State = state;
+            }
+        }
+
+        public void UpdateChannelTitle(string login, string title)
+        {
+            if (!Application.Current.Dispatcher.CheckAccess())
+            {
+                Application.Current.Dispatcher.Invoke(() => UpdateChannelTitle(login, title));
+                return;
+            }
+
+            var channel = Channels.FirstOrDefault(c => c.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
+            if (channel != null)
+            {
+                channel.Title = title;
+            }
+        }
+
+        public void UpdateChannelImageUrl(string login, string imageUrl)
+        {
+            if (!Application.Current.Dispatcher.CheckAccess())
+            {
+                Application.Current.Dispatcher.Invoke(() => UpdateChannelTitle(login, imageUrl));
+                return;
+            }
+
+            var channel = Channels.FirstOrDefault(c => c.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
+            if (channel != null)
+            {
+                channel.ImageUrl = imageUrl;
             }
         }
     }

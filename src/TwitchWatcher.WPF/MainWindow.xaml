@@ -71,7 +71,7 @@
                       AutoGenerateColumns="False"
                       CanUserAddRows="False" 
                       HeadersVisibility="Column"
-                      RowHeight="36" 
+                      RowHeight="48" 
                       GridLinesVisibility="None" 
                       Background="Transparent"
                       BorderThickness="0">
@@ -102,8 +102,25 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
+                    
+                        <DataGridTemplateColumn Header="Preview" Width="auto">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid Width="36" Height="36">
+                                        <Border CornerRadius="18" Background="#222"/>
+                                        <Image Source="{Binding ImageUrl}"
+                                                Stretch="Fill"
+                                                Width="36" Height="36">
+                                            <Image.Clip>
+                                                <RectangleGeometry RadiusX="18" RadiusY="18" Rect="0,0,36,36"/>
+                                            </Image.Clip>
+                                        </Image>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
 
-                        <DataGridTextColumn Header="Channel" Binding="{Binding Login}" Width="*">
+                        <DataGridTextColumn Header="Channel" Binding="{Binding Login}" Width="auto">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>
@@ -111,6 +128,16 @@
                                 </Style>
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
+
+
+                    <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="20,0"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
 
                     </DataGrid.Columns>
             </DataGrid>

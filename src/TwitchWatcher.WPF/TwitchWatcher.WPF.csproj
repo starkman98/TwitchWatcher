@@ -12,7 +12,7 @@
 	<SelfContained>true</SelfContained>
 	<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
 	<ApplicationIcon>Assets\Icons\stream.ico</ApplicationIcon>
-	<StartupObject>TwitchWatcher.WPF.Program</StartupObject>
+	  <!-->StartupObject>TwitchWatcher.WPF.Program</StartupObject-->
 	<UserSecretsId>b2aa5897-65cb-4907-938a-ac52978ce121</UserSecretsId>
   </PropertyGroup>
 

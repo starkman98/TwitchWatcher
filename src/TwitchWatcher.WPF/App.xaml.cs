@@ -45,6 +45,8 @@ namespace TwitchWatcher.WPF
                     services.AddSingleton<MainViewModel>();
                     services.AddSingleton<MainWindow>();
                     services.AddSingleton<IChannelStateUpdater>(sp => sp.GetRequiredService<MainViewModel>());
+                    services.AddSingleton<IChannelTitleUpdater>(sp => sp.GetRequiredService<MainViewModel>());
+                    services.AddSingleton<IChannelImageUrlUpdater>(sp => sp.GetRequiredService<MainViewModel>());
                 }).Build();
 
         }
@@ -76,4 +78,24 @@ namespace TwitchWatcher.WPF
             base.OnExit(e);
         }
     }
+
+    //public static class Program
+    //{
+    //    [STAThread]
+    //    public static void Main()
+    //    {
+    //        try
+    //        {
+    //            File.WriteAllText("main-entry-hit.txt", DateTime.Now.ToString());
+    //            var app = new App();
+    //            app.InitializeComponent();   // still loads App.xaml resources
+    //            app.Run();
+    //        }
+    //        catch (Exception ex)
+    //        {
+    //            File.WriteAllText("main-entry-crash.txt", ex.ToString());
+    //            throw;
+    //        }
+    //    }
+    //}
 }

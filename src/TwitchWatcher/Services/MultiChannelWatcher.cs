@@ -11,7 +11,7 @@ using TwitchWatcher.Models;
 
 namespace TwitchWatcher.Services
 {
-    public class MultiChannelWatcher : BackgroundService , IChannelStateUpdater
+    public class MultiChannelWatcher : BackgroundService
     {
         private readonly ITwitchApi _api;
         private readonly IPlayerFactory _playerFactory;
@@ -19,10 +19,14 @@ namespace TwitchWatcher.Services
         private readonly ILogger<MultiChannelWatcher> _log;
 
         private readonly IChannelStateUpdater _channelStateUpdater;
+        private readonly IChannelTitleUpdater _channelTitleUpdater;
+        private readonly IChannelImageUrlUpdater _channelImageUrlUpdater;
         
         private readonly Dictionary<string, string> _userIds = new();
         private readonly Dictionary<string, StreamState> _states = new();
         private readonly Dictionary<string, IPlayerService> _players = new();
+        private readonly Dictionary<string, string> _titles = new();
+        private readonly Dictionary<string, string> _imageUrl = new();
 
         private static string Normalize(string s) => (s ?? "").Trim().ToLowerInvariant();
 
@@ -33,13 +37,17 @@ namespace TwitchWatcher.Services
             IPlayerFactory playerFactory,
             IOptionsMonitor<AppOptions> options,
             ILogger<MultiChannelWatcher> log,
-            IChannelStateUpdater channelStateUpdater)
+            IChannelStateUpdater channelStateUpdater,
+            IChannelTitleUpdater channelTitleUpdater,
+            IChannelImageUrlUpdater channelImageUrlUpdater)
         {
             _api = api;
             _playerFactory = playerFactory;
             _options = options;
             _log = log;
             _channelStateUpdater = channelStateUpdater;
+            _channelTitleUpdater = channelTitleUpdater;
+            _channelImageUrlUpdater = channelImageUrlUpdater;
         }
 
         protected override async Task ExecuteAsync(CancellationToken ct)
@@ -90,6 +98,12 @@ namespace TwitchWatcher.Services
                     _userIds[login] = userId;
                     _states[login] = StreamState.Unknown;
 
+                    var title = await _api.GetChannelTitleAsync(login, ct);
+                    _titles[login] = title;
+
+                    var imageUrl = await _api.GetChannelImageUrlAsync(login, ct);
+                    _imageUrl[login] = imageUrl;
+
                     var player = _playerFactory.Create(login);
                     _players[login] = player;
 
@@ -113,6 +127,7 @@ namespace TwitchWatcher.Services
                 _players.Remove(login);
                 _states.Remove(login);
                 _userIds.Remove(login);
+                _titles.Remove(login);
             }
         }
 
@@ -163,6 +178,13 @@ namespace TwitchWatcher.Services
 
                 _channelStateUpdater.UpdateChannelState(login, next);
 
+                var title = await _api.GetChannelTitleAsync(login, ct);
+                _channelTitleUpdater.UpdateChannelTitle(login, title);
+
+                var imageUrl = await _api.GetChannelImageUrlAsync(login, ct);
+                _channelImageUrlUpdater.UpdateChannelImageUrl(login, imageUrl);
+
+            
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -172,11 +194,6 @@ namespace TwitchWatcher.Services
             {
                 _log.LogInformation(ex, "## [{Login}] Poll failed, will retry.", login);
             }
-        }
-
-        public void UpdateChannelState(string a, StreamState b)
-        {
-
         }
     }
 }

@@ -13,5 +13,8 @@ namespace TwitchWatcher.Models
         public string Login { get; set; } = string.Empty;
         [JsonPropertyName("display_name")]
         public string DisplayName { get; set; } = string.Empty;
+        [JsonPropertyName("title")]
+        public string Title { get; set; } = string.Empty;
+
     }
 }

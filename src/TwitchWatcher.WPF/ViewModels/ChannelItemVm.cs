@@ -14,5 +14,7 @@ namespace TwitchWatcher.WPF.ViewModels
         [ObservableProperty]
         private string _status = "Unknown";
 
+        [ObservableProperty]
+        private string _title = string.Empty;
     }
 }
