@@ -76,6 +76,22 @@
                       Background="Transparent"
                       BorderThickness="0">
                     <DataGrid.Columns>
+                        <DataGridTemplateColumn Header="Preview" Width="auto">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid Width="36" Height="36">
+                                        <Border CornerRadius="18" Background="#222"/>
+                                        <Image Source="{Binding ImageUrl}"
+                                                Stretch="Fill"
+                                                Width="36" Height="36">
+                                            <Image.Clip>
+                                                <RectangleGeometry RadiusX="18" RadiusY="18" Rect="0,0,36,36"/>
+                                            </Image.Clip>
+                                        </Image>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                         <DataGridTemplateColumn Header="Status" Width="auto">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -97,30 +113,23 @@
                                                 </Style>
                                             </Ellipse.Style>
                                         </Ellipse>
-                                        <TextBlock Text="{Binding State}" Foreground="{StaticResource Brush.TextDim}" Padding="10,0"/>
+                                        <!--TextBlock Text="{Binding State}" Foreground="{StaticResource Brush.TextDim}" Padding="10,0"/-->
                                     </StackPanel>
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                     
-                        <DataGridTemplateColumn Header="Preview" Width="auto">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Grid Width="36" Height="36">
-                                        <Border CornerRadius="18" Background="#222"/>
-                                        <Image Source="{Binding ImageUrl}"
-                                                Stretch="Fill"
-                                                Width="36" Height="36">
-                                            <Image.Clip>
-                                                <RectangleGeometry RadiusX="18" RadiusY="18" Rect="0,0,36,36"/>
-                                            </Image.Clip>
-                                        </Image>
-                                    </Grid>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
 
-                        <DataGridTextColumn Header="Channel" Binding="{Binding Login}" Width="auto">
+                    <DataGridTextColumn Header="Viewers" Binding="{Binding ViewerCount}" Width="auto">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Padding" Value="20,0"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                        <DataGridTextColumn Header="Channel" Binding="{Binding DisplayName}" Width="auto">
                             <DataGridTextColumn.ElementStyle>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="VerticalAlignment" Value="Center"/>

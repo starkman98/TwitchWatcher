@@ -11,6 +11,20 @@ namespace TwitchWatcher.Configuration
     {
         public string Login { get; set; } = "";
 
+        public string _displayName = string.Empty;
+        public string DisplayName
+        {
+            get => _displayName;
+            set
+            {
+                if (_displayName != value)
+                {
+                    _displayName = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayName)));
+                }
+            }
+        }
+
         private StreamState _state;
         public StreamState State
         {
@@ -49,6 +63,20 @@ namespace TwitchWatcher.Configuration
                 {
                     _imageUrl = value;
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ImageUrl)));
+                }
+            }
+        }
+
+        public int _viewerCount;
+        public int ViewerCount
+        {
+            get => _viewerCount;
+            set
+            {
+                if (_viewerCount != value)
+                {
+                    _viewerCount = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ViewerCount)));
                 }
             }
         }

@@ -13,6 +13,7 @@ using System.Windows;
 using TwitchWatcher.Configuration;
 using TwitchWatcher.Core;
 using TwitchWatcher.Core.Contracts;
+using TwitchWatcher.Core.Services;
 using TwitchWatcher.Services;
 using TwitchWatcher.WPF.Infrastructure.Configuration;
 using TwitchWatcher.WPF.ViewModels;
@@ -44,9 +45,10 @@ namespace TwitchWatcher.WPF
 
                     services.AddSingleton<MainViewModel>();
                     services.AddSingleton<MainWindow>();
-                    services.AddSingleton<IChannelStateUpdater>(sp => sp.GetRequiredService<MainViewModel>());
-                    services.AddSingleton<IChannelTitleUpdater>(sp => sp.GetRequiredService<MainViewModel>());
-                    services.AddSingleton<IChannelImageUrlUpdater>(sp => sp.GetRequiredService<MainViewModel>());
+                    services.AddSingleton<IChannelDataStore, ChannelDataStore>();
+                    //services.AddSingleton<IChannelStateUpdater>(sp => sp.GetRequiredService<MainViewModel>());
+                    //services.AddSingleton<IChannelTitleUpdater>(sp => sp.GetRequiredService<MainViewModel>());
+                    //services.AddSingleton<IChannelImageUrlUpdater>(sp => sp.GetRequiredService<MainViewModel>());
                 }).Build();
 
         }

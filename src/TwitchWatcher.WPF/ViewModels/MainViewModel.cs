@@ -20,10 +20,11 @@ using TwitchWatcher.Services;
 
 namespace TwitchWatcher.WPF.ViewModels
 {
-    public partial class MainViewModel : ViewModelBase , IChannelStateUpdater, IChannelTitleUpdater, IChannelImageUrlUpdater
+    public partial class MainViewModel : ViewModelBase /*, IChannelStateUpdater, IChannelTitleUpdater, IChannelImageUrlUpdater*/
     {
         private readonly IOptionsMonitor<AppOptions> _monitor;
         private readonly IWritableOptions<AppOptions> _writable;
+        private readonly IChannelDataStore _store;
 
         public ObservableCollection<ChannelConfig> Channels { get; } = new();
 
@@ -39,18 +40,59 @@ namespace TwitchWatcher.WPF.ViewModels
         public ICommand RemoveCommand { get; private set; }
         public ICommand SaveCommand { get; private set; }
 
-        public MainViewModel (IOptionsMonitor<AppOptions> monitor, IWritableOptions<AppOptions> writable)
+        public MainViewModel (IOptionsMonitor<AppOptions> monitor, IWritableOptions<AppOptions> writable, IChannelDataStore store)
         {
             _monitor = monitor;
             _writable = writable;
+            _store = store;
             
             SyncFromOptions(_monitor.CurrentValue);
             _monitor.OnChange(options =>
             App.Current.Dispatcher.Invoke(() => SyncFromOptions(options)));
+           
+            _store.DataChanged += Store_DataChanged;
+
+            RefreshFromStore();
 
             AddCommand = new RelayCommand(Add, () => !string.IsNullOrWhiteSpace(NewLogin));
             RemoveCommand = new RelayCommand(Remove, () => Selected != null);
             SaveCommand = new RelayCommand(Save, () => true);
+        }
+
+        public void Store_DataChanged(object? sender, EventArgs e)
+        {
+            if (!App.Current.Dispatcher.CheckAccess())
+            {
+                App.Current.Dispatcher.Invoke(RefreshFromStore);
+                return;
+            }
+            RefreshFromStore();
+        }
+
+        public void RefreshFromStore()
+        {
+            var users = _store.GetUsersSnapshot();
+            var streams = _store.GetStreamsSnapshot();
+
+            foreach (var channel in Channels)
+            {
+                var login = (channel.Login ?? string.Empty).Trim().ToLowerInvariant();
+
+                if (users.TryGetValue(login, out var user))
+                {
+                    channel.DisplayName = user.DisplayName;
+                    channel.ImageUrl = user.ProfileImageUrl.Replace("300", "70");
+                }
+
+                if (user != null && streams.TryGetValue(user.Id, out var stream))
+                {
+                    channel.Title = stream.Title ?? channel.Title;
+                    channel.ViewerCount = stream.ViewerCount;
+                    channel.State = string.Equals(stream.Type,"live", StringComparison.OrdinalIgnoreCase)
+                        ? StreamState.Live
+                        : StreamState.Offline;
+                }
+            }
         }
 
         private void SyncFromOptions(AppOptions options)
@@ -101,49 +143,49 @@ namespace TwitchWatcher.WPF.ViewModels
             
         }
 
-        public void UpdateChannelState(string login, StreamState state)
-        {
-            if (!Application.Current.Dispatcher.CheckAccess())
-            {
-                Application.Current.Dispatcher.Invoke(() => UpdateChannelState(login, state));
-                return;
-            }
+        //public void UpdateChannelState(string login, StreamState state)
+        //{
+        //    if (!Application.Current.Dispatcher.CheckAccess())
+        //    {
+        //        Application.Current.Dispatcher.Invoke(() => UpdateChannelState(login, state));
+        //        return;
+        //    }
 
-            var channel = Channels.FirstOrDefault(c => c.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
-            if (channel != null)
-            {
-                channel.State = state;
-            }
-        }
+        //    var channel = Channels.FirstOrDefault(c => c.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
+        //    if (channel != null)
+        //    {
+        //        channel.State = state;
+        //    }
+        //}
 
-        public void UpdateChannelTitle(string login, string title)
-        {
-            if (!Application.Current.Dispatcher.CheckAccess())
-            {
-                Application.Current.Dispatcher.Invoke(() => UpdateChannelTitle(login, title));
-                return;
-            }
+        //public void UpdateChannelTitle(string login, string title)
+        //{
+        //    if (!Application.Current.Dispatcher.CheckAccess())
+        //    {
+        //        Application.Current.Dispatcher.Invoke(() => UpdateChannelTitle(login, title));
+        //        return;
+        //    }
 
-            var channel = Channels.FirstOrDefault(c => c.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
-            if (channel != null)
-            {
-                channel.Title = title;
-            }
-        }
+        //    var channel = Channels.FirstOrDefault(c => c.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
+        //    if (channel != null)
+        //    {
+        //        channel.Title = title;
+        //    }
+        //}
 
-        public void UpdateChannelImageUrl(string login, string imageUrl)
-        {
-            if (!Application.Current.Dispatcher.CheckAccess())
-            {
-                Application.Current.Dispatcher.Invoke(() => UpdateChannelTitle(login, imageUrl));
-                return;
-            }
+        //public void UpdateChannelImageUrl(string login, string imageUrl)
+        //{
+        //    if (!Application.Current.Dispatcher.CheckAccess())
+        //    {
+        //        Application.Current.Dispatcher.Invoke(() => UpdateChannelTitle(login, imageUrl));
+        //        return;
+        //    }
 
-            var channel = Channels.FirstOrDefault(c => c.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
-            if (channel != null)
-            {
-                channel.ImageUrl = imageUrl;
-            }
-        }
+        //    var channel = Channels.FirstOrDefault(c => c.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
+        //    if (channel != null)
+        //    {
+        //        channel.ImageUrl = imageUrl;
+        //    }
+        //}
     }
 }

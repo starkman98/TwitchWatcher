@@ -15,8 +15,13 @@ namespace TwitchWatcher.Models
         public string Type { get; set; }
         [JsonPropertyName("title")]
         public string Title { get; set; }
-        [JsonPropertyName("profile_image_url")]
-        public string ImageUrl { get; set; }
+        //[JsonPropertyName("profile_image_url")]
+        //public string ImageUrl { get; set; }
+        [JsonPropertyName("viewer_count")]
+        public int ViewerCount { get; set; }
+        [JsonPropertyName("thumbnail_url")]
+        public string ThumbnailUrl { get; set; }
+        public StreamState State { get; set; }
 
     }
 }

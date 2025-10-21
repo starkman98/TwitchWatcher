@@ -8,6 +8,7 @@ using TwitchWatcher.Configuration;
 using TwitchWatcher.Contracts;
 using TwitchWatcher.Core.Contracts;
 using TwitchWatcher.Models;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace TwitchWatcher.Services
 {
@@ -18,10 +19,13 @@ namespace TwitchWatcher.Services
         private readonly IOptionsMonitor<AppOptions> _options;
         private readonly ILogger<MultiChannelWatcher> _log;
 
-        private readonly IChannelStateUpdater _channelStateUpdater;
-        private readonly IChannelTitleUpdater _channelTitleUpdater;
-        private readonly IChannelImageUrlUpdater _channelImageUrlUpdater;
-        
+        private readonly IChannelDataStore _store;
+        //private readonly IChannelStateUpdater _channelStateUpdater;
+        //private readonly IChannelTitleUpdater _channelTitleUpdater;
+        //private readonly IChannelImageUrlUpdater _channelImageUrlUpdater;
+
+        private readonly Dictionary<string, TwitchUser> _users = new();
+        private readonly Dictionary<string, TwitchStream> _streams = new();
         private readonly Dictionary<string, string> _userIds = new();
         private readonly Dictionary<string, StreamState> _states = new();
         private readonly Dictionary<string, IPlayerService> _players = new();
@@ -37,17 +41,19 @@ namespace TwitchWatcher.Services
             IPlayerFactory playerFactory,
             IOptionsMonitor<AppOptions> options,
             ILogger<MultiChannelWatcher> log,
-            IChannelStateUpdater channelStateUpdater,
+            IChannelDataStore store)
+            /*IChannelStateUpdater channelStateUpdater,
             IChannelTitleUpdater channelTitleUpdater,
-            IChannelImageUrlUpdater channelImageUrlUpdater)
+            IChannelImageUrlUpdater channelImageUrlUpdater,*/
         {
             _api = api;
             _playerFactory = playerFactory;
             _options = options;
             _log = log;
-            _channelStateUpdater = channelStateUpdater;
-            _channelTitleUpdater = channelTitleUpdater;
-            _channelImageUrlUpdater = channelImageUrlUpdater;
+            _store = store;
+            //_channelStateUpdater = channelStateUpdater;
+            //_channelTitleUpdater = channelTitleUpdater;
+            //_channelImageUrlUpdater = channelImageUrlUpdater;
         }
 
         protected override async Task ExecuteAsync(CancellationToken ct)
@@ -90,28 +96,43 @@ namespace TwitchWatcher.Services
             var config = _options.CurrentValue;
             var desired = (config.Channels ?? new()).Select(c => Normalize(c.Login)).Where(s => !string.IsNullOrWhiteSpace(s)).ToHashSet();
 
-            foreach (var login in desired.Except(_states.Keys).ToList())
+            var toAdd = desired.Except(_userIds.Keys).ToList();
+            if (toAdd.Count > 0)
             {
+                var map = await _api.GetUsersDataByLoginsAsync(toAdd, ct);
                 try
                 {
-                    var userId = await _api.GetUserIdAsync(login, ct);
-                    _userIds[login] = userId;
-                    _states[login] = StreamState.Unknown;
+                    foreach (var login in toAdd)
+                    {
+                        if (map.TryGetValue(login, out var user))
+                        {
+                            _users[login] = user;
+                            //var userId = await _api.GetUserIdAsync(login, ct);
+                            _userIds[login] = user.Id;
+                            _states[login] = StreamState.Unknown;
 
-                    var title = await _api.GetChannelTitleAsync(login, ct);
-                    _titles[login] = title;
+                            //var title = await _api.GetChannelTitleAsync(login, ct);
+                            _titles[login] = user.Title;
 
-                    var imageUrl = await _api.GetChannelImageUrlAsync(login, ct);
-                    _imageUrl[login] = imageUrl;
+                            //var imageUrl = await _api.GetChannelImageUrlAsync(login, ct);
+                            _imageUrl[login] = user.ProfileImageUrl;
 
-                    var player = _playerFactory.Create(login);
-                    _players[login] = player;
+                            var player = _playerFactory.Create(login);
+                            _players[login] = player;
+                    
+                            _log.LogInformation("## [{Login}] Added (userId={UserId})", login, user.Id);
+                        }
+                        else
+                        {
+                            _log.LogInformation("## [{Login}] User not found during bulk resolve.", login);
+                        }
+                    }
+                    _store.SetUsers(_users.Values);
 
-                    _log.LogInformation("## [{Login}] Added (userId={UserId})", login, userId);
                 }
                 catch (Exception ex)
                 {
-                    _log.LogInformation("## [{Login}] Failed to add channel (will retry on next sync).", login);
+                    _log.LogInformation(ex, "## Failed to resolve user ids in bulk (will retry on next sync).");
                 }
             }
 
@@ -128,18 +149,88 @@ namespace TwitchWatcher.Services
                 _states.Remove(login);
                 _userIds.Remove(login);
                 _titles.Remove(login);
+                _imageUrl.Remove(login);
+                _users.Remove(login);
+                _store.RemoveUser(login);
             }
         }
 
         private async Task PollAllAsync(CancellationToken ct)
         {
             var logins = _states.Keys.ToList();
+            if (logins.Count == 0) return;
+
+            var userIds = logins.Select(l => _userIds.TryGetValue(l, out var id) ? id : null)
+                                .Where(id => !string.IsNullOrWhiteSpace(id))
+                                .Distinct()
+                                .ToList();
+
+            try
+            {
+                var map = await _api.GetStreamsByUserIdsAsync(userIds, ct);
+
+                _streams.Clear();
+                if (map != null)
+                {
+                    foreach (var kv in map)
+                    {
+                        _streams[kv.Key] = kv.Value;
+                    }
+                }
+
+                _store.SetStreams(_streams.Values);
+            }
+            catch (Exception ex)
+            {
+                _log.LogInformation(ex, "## Bulk streams request failed, will try per-channel fallback.");
+            }
+
             foreach (var login in logins)
             {
-                await PollOneAsync(login, ct);
-
+                try
+                {
+                    await UpdateChannelCachesAsync(login, _streams, ct);
+                }
+                catch (Exception ex)
+                {
+                    _log.LogInformation(ex, "## [{Login}] Poll failed, will retry next time.", login);
+                }
                 await Task.Delay(100, ct);
             }
+        }
+
+        public async Task UpdateChannelCachesAsync(string login, Dictionary<string, TwitchStream> streams, CancellationToken ct)
+        {
+            if (!_userIds.TryGetValue(login, out var userId) || !_players.TryGetValue(login, out var player)) return;
+
+            var prevState = _states.TryGetValue(login, out var s) ? s : StreamState.Unknown;
+            var isLive = streams.TryGetValue(userId, out var stream);
+            var nextState = isLive ? StreamState.Live : StreamState.Offline;
+
+            if (nextState == StreamState.Live && !player.IsOpen)
+            {
+                _log.LogInformation("## [{Login}] Live and player not open => opening.", login);
+                var url = new Uri($"https://www.twitch.tv/{login}");
+                await player.OpenAsync(url, ct);
+            }
+            else if (prevState == StreamState.Live && nextState == StreamState.Offline)
+            {
+                _log.LogInformation("## [{Login}] Went offline => closing.", login);
+                await player.CloseAsync(ct);
+            }
+
+            if (prevState == StreamState.Unknown)
+            {
+                _log.LogInformation("## [{Login}] Initial state = {state}", login, nextState);
+            }
+
+            if (_states[login] != StreamState.Unknown)
+            {
+                _log.LogInformation("## [{Login}] is still {state}", login, _states[login]);
+            }
+            _states[login] = nextState;
+            //_streams[login].State = nextState;
+
         }
         
         private async Task PollOneAsync(string login, CancellationToken ct)
@@ -176,13 +267,13 @@ namespace TwitchWatcher.Services
 
                 _states[login] = next;
 
-                _channelStateUpdater.UpdateChannelState(login, next);
+                //_channelStateUpdater.UpdateChannelState(login, next);
 
-                var title = await _api.GetChannelTitleAsync(login, ct);
-                _channelTitleUpdater.UpdateChannelTitle(login, title);
+                //var title = await _api.GetChannelTitleAsync(login, ct);
+                //_channelTitleUpdater.UpdateChannelTitle(login, title);
 
-                var imageUrl = await _api.GetChannelImageUrlAsync(login, ct);
-                _channelImageUrlUpdater.UpdateChannelImageUrl(login, imageUrl);
+                //var imageUrl = await _api.GetChannelImageUrlAsync(login, ct);
+                //_channelImageUrlUpdater.UpdateChannelImageUrl(login, imageUrl);
 
             
             }
