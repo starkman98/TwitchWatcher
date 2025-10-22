@@ -17,6 +17,7 @@ using System.DirectoryServices.ActiveDirectory;
 using TwitchWatcher.Models;
 using TwitchWatcher.Core.Contracts;
 using TwitchWatcher.Services;
+using TwitchWatcher.Contracts;
 
 namespace TwitchWatcher.WPF.ViewModels
 {
@@ -25,26 +26,30 @@ namespace TwitchWatcher.WPF.ViewModels
         private readonly IOptionsMonitor<AppOptions> _monitor;
         private readonly IWritableOptions<AppOptions> _writable;
         private readonly IChannelDataStore _store;
+        private readonly ITwitchApi _api;
 
         public ObservableCollection<ChannelConfig> Channels { get; } = new();
 
         private ChannelConfig? _selected;
-        public ChannelConfig? Selected { get => _selected; set { _selected = value; CommandManager.InvalidateRequerySuggested(); } }
+        public ChannelConfig? Selected { get => _selected; 
+            set { Set(ref _selected, value); RemoveCommand?.NotifyCanExecuteChanged(); } }
 
         private string _newLogin = "";
-        public string NewLogin { get => _newLogin; set { _newLogin = value; CommandManager.InvalidateRequerySuggested(); } }
+        public string NewLogin { get => _newLogin; 
+            set { Set(ref _newLogin, value); AddCommand?.NotifyCanExecuteChanged(); } }
 
         private bool _isSyncing;
 
-        public ICommand AddCommand { get; private set; }
-        public ICommand RemoveCommand { get; private set; }
+        public IAsyncRelayCommand AddCommand { get; private set; }
+        public IAsyncRelayCommand RemoveCommand { get; private set; }
         public ICommand SaveCommand { get; private set; }
 
-        public MainViewModel (IOptionsMonitor<AppOptions> monitor, IWritableOptions<AppOptions> writable, IChannelDataStore store)
+        public MainViewModel (IOptionsMonitor<AppOptions> monitor, IWritableOptions<AppOptions> writable, IChannelDataStore store, ITwitchApi api)
         {
             _monitor = monitor;
             _writable = writable;
             _store = store;
+            _api = api;
             
             SyncFromOptions(_monitor.CurrentValue);
             _monitor.OnChange(options =>
@@ -54,9 +59,9 @@ namespace TwitchWatcher.WPF.ViewModels
 
             RefreshFromStore();
 
-            AddCommand = new RelayCommand(Add, () => !string.IsNullOrWhiteSpace(NewLogin));
-            RemoveCommand = new RelayCommand(Remove, () => Selected != null);
-            SaveCommand = new RelayCommand(Save, () => true);
+            AddCommand = new AsyncRelayCommand(AddAsync, () => !string.IsNullOrWhiteSpace(NewLogin));
+            RemoveCommand = new AsyncRelayCommand(RemoveAsync, () => Selected != null);
+            SaveCommand = new AsyncRelayCommand(SaveAsync, () => true);
         }
 
         public void Store_DataChanged(object? sender, EventArgs e)
@@ -97,18 +102,60 @@ namespace TwitchWatcher.WPF.ViewModels
 
         private void SyncFromOptions(AppOptions options)
         {
-            Channels.Clear();
-            foreach (var c in options.Channels
+            //Channels.Clear();
+
+            //foreach (var c in options.Channels
+            //    .Where(c => !string.IsNullOrWhiteSpace(c.Login))
+            //    .GroupBy(c => c.Login, StringComparer.OrdinalIgnoreCase)
+            //    .Select(g => g.First())
+            //    .OrderBy(c => c.Login))
+            //{
+            //    Channels.Add(new ChannelConfig { Login = c.Login });
+            //}
+
+            var savedLogins = options.Channels
                 .Where(c => !string.IsNullOrWhiteSpace(c.Login))
                 .GroupBy(c => c.Login, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First())
-                .OrderBy(c => c.Login))
+                .Select(g => g.First().Login.Trim().ToLowerInvariant())
+                .OrderBy(l => l)
+                .ToList();
+
+            // remove deleted channels (iterate backwards)
+            for (int i = Channels.Count - 1; i >= 0; i--)
             {
-                Channels.Add(new ChannelConfig { Login = c.Login });
-            }  
+                var ch = Channels[i];
+                if (!savedLogins.Contains(ch.Login, StringComparer.OrdinalIgnoreCase))
+                    Channels.RemoveAt(i);
+            }
+
+            // insert new channels and reorder while preserving existing ChannelConfig instances
+            int insertIndex = 0;
+            foreach (var login in savedLogins)
+            {
+                var existing = Channels.FirstOrDefault(c => string.Equals(c.Login, login, StringComparison.OrdinalIgnoreCase));
+                if (existing != null)
+                {
+                    var currentIndex = Channels.IndexOf(existing);
+                    if (currentIndex != insertIndex)
+                        Channels.Move(currentIndex, insertIndex);
+                }
+                else
+                {
+                    var newCh = new ChannelConfig { Login = login };
+                    // seed UI values from the store immediately so UI doesn't show blanks
+                    if (_store.TryGetUser(login, out var user))
+                    {
+                        newCh.DisplayName = user.DisplayName;
+                        if (!string.IsNullOrWhiteSpace(user.ProfileImageUrl))
+                            newCh.ImageUrl = user.ProfileImageUrl.Replace("300", "70");
+                    }
+                    Channels.Insert(insertIndex, newCh);
+                }
+                insertIndex++;
+            }
         }
 
-        private void Add()
+        private async Task AddAsync()
         {
             var login = NewLogin.Trim().ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(login)) return;
@@ -117,14 +164,19 @@ namespace TwitchWatcher.WPF.ViewModels
             Channels.Add(new ChannelConfig { Login = login });
             NewLogin = "";
             CommandManager.InvalidateRequerySuggested();
+            RefreshFromStore();
+
+            await SaveAsync();
         }
 
-        private void Remove()
+        private async Task RemoveAsync()
         {
             if (Selected is null) return;
             Channels.Remove(Selected);
             Selected = null;
             CommandManager.InvalidateRequerySuggested();
+
+            await SaveAsync();
         }
 
         private void Save()
@@ -139,8 +191,58 @@ namespace TwitchWatcher.WPF.ViewModels
                 .ToList();
             });
             CommandManager.InvalidateRequerySuggested();
-            
-            
+
+            RefreshFromStore();
+        }
+
+        private async Task SaveAsync()
+        {
+            _writable.Update(options =>
+            {
+                options.Channels = Channels
+                .Where(c => !string.IsNullOrWhiteSpace(c.Login))
+                .GroupBy(c => c.Login, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .OrderBy(c => c.Login)
+                .ToList();
+            });
+            CommandManager.InvalidateRequerySuggested();
+
+            var logins = Channels
+                .Select(c => (c.Login ?? string.Empty).Trim().ToLowerInvariant())
+                .Where(l => !string.IsNullOrWhiteSpace(l))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            try
+            {
+                var usersMap = await _api.GetUsersDataByLoginsAsync(logins);
+                if (usersMap != null && usersMap.Count > 0)
+                {
+                    _store.SetUsers(usersMap.Values);
+                }
+
+                var userIds = usersMap?.Values
+                    .Select(u => u.Id)
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .ToList() 
+                    ?? new();
+
+                if (userIds.Count > 0)
+                {
+                    var streamsMap = await _api.GetStreamsByUserIdsAsync(userIds);
+                    if (streamsMap != null)
+                    {
+                        _store.SetStreams(streamsMap.Values);
+                    }
+                }
+            }
+            catch (Exception ex) { /*optionally log errors in future*/}
+
+            if (!App.Current.Dispatcher.CheckAccess())
+                App.Current.Dispatcher.Invoke(RefreshFromStore);
+            else
+                RefreshFromStore();
         }
 
         //public void UpdateChannelState(string login, StreamState state)

@@ -14,6 +14,10 @@
         <Border DockPanel.Dock="Top" CornerRadius="12" Padding="14"
             Background="{StaticResource Brush.PanelBg}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" >
             <DockPanel>
+                <Image Source="/Assets/Icons/stream (1).ico" 
+                       Width="48" Height="48"
+                       VerticalAlignment="Center"
+                       Margin="10,0"/>
                 <TextBlock Text="Twitch Watcher"
                    FontSize="18" FontWeight="SemiBold"
                    Foreground="{StaticResource Brush.Text}" VerticalAlignment="Center"
@@ -21,16 +25,17 @@
                    Margin="0,0,0,0"/>
                 <StackPanel Orientation="Horizontal"
                             DockPanel.Dock="Right" 
-                            HorizontalAlignment="Right">
+                            HorizontalAlignment="Right"
+                            Height="34">
                     <!-- Input with placeholder overlay -->
                     <Grid Width="260" Margin="0,0,22,0">
                         <TextBox x:Name="LoginTextBox"
-                     Text="{Binding NewLogin, UpdateSourceTrigger=PropertyChanged}"
-                     ToolTip="Enter channel login (e.g., shroud)"
-                     Margin="12,0,8,0"/>
+                                    Text="{Binding NewLogin, UpdateSourceTrigger=PropertyChanged}"
+                                    ToolTip="Enter channel login (e.g., shroud)"
+                                    Margin="20,0,0,0"/>
                         <TextBlock Text="Enter new channel…"
                        Foreground="{StaticResource Brush.TextDim}"
-                       Margin="20,0,0,0"
+                       Margin="40,0,0,0"
                        VerticalAlignment="Center"
                        IsHitTestVisible="False">
                             <TextBlock.Style>
@@ -51,7 +56,7 @@
 
                     <Button Content="Add"    Command="{Binding AddCommand}"   Style="{StaticResource AccentButton}" Margin="0,0,8,0"/>
                     <Button Content="Remove" Command="{Binding RemoveCommand}" Style="{StaticResource DangerButton}" Margin="0,0,8,0"/>
-                    <Button Content="Save"   Command="{Binding SaveCommand}"   Style="{StaticResource SuccessButton}"/>
+                    <!--Button Content="Save"   Command="{Binding SaveCommand}"   Style="{StaticResource SuccessButton}"/-->
                 </StackPanel>
             </DockPanel>
         </Border>
@@ -92,6 +97,14 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="Channel" Binding="{Binding DisplayName}" Width="auto">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="0,0"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
                         <DataGridTemplateColumn Header="Status" Width="auto">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -101,7 +114,7 @@
                                             <Ellipse.Style>
                                                 <Style TargetType="Ellipse" BasedOn="{StaticResource StateDot}">
                                                     <Setter Property="Fill" Value="Gray"/>
-                                                <Setter Property="Margin" Value="10,0,0,0"/>
+                                                <Setter Property="Margin" Value="30,0,0,0"/>
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding State}" Value="Live">
                                                         <Setter Property="Fill" Value="{StaticResource Brush.Success}"/>
@@ -124,19 +137,11 @@
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="VerticalAlignment" Value="Center"/>
-                                <Setter Property="Padding" Value="20,0"/>
+                                <Setter Property="Padding" Value="0,0"/>
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                        <DataGridTextColumn Header="Channel" Binding="{Binding DisplayName}" Width="auto">
-                            <DataGridTextColumn.ElementStyle>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="VerticalAlignment" Value="Center"/>
-                                    <Setter Property="Padding" Value="20,0"/>
-                                </Style>
-                            </DataGridTextColumn.ElementStyle>
-                        </DataGridTextColumn>
 
 
                     <DataGridTextColumn Header="Title" Binding="{Binding Title}" Width="*">
