@@ -7,7 +7,6 @@ namespace TwitchWatcher.Models
 {
     public class UsersResponse
     {
-        [JsonPropertyName("data")]
-        public List<TwitchUser> Data { get; set; } = new();
+        [JsonPropertyName("data")] public List<TwitchUser> Data { get; set; } = new();
     }
 }

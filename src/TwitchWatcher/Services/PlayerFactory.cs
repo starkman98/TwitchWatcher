@@ -35,18 +35,11 @@ namespace TwitchWatcher.Services
         private static string BuildProfilePath(string login, string? configuredRoot)
         {
             string root;
-            //if (!string.IsNullOrWhiteSpace(configuredRoot))
-            //{
-            //    root = Path.GetFullPath(configuredRoot);
-            //}
-            //else
-            //{
 
             if (string.IsNullOrWhiteSpace(login)) throw new ArgumentException("login empty");
 
             var local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                 root = Path.Combine(local, "TwitchWatcher", "profiles");
-            //}
 
             var safeLogin = Sanitize(login);
             

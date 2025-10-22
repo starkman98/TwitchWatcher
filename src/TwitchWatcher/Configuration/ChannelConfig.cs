@@ -81,6 +81,20 @@ namespace TwitchWatcher.Configuration
             }
         }
 
+        private bool _isNotFound;
+        public bool IsNotFound
+        {
+            get => _isNotFound;
+            set
+            {
+                if (_isNotFound != value)
+                {
+                    _isNotFound = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsNotFound)));
+                }
+            }
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
     }
 }

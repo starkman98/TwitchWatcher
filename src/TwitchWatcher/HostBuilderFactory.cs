@@ -21,7 +21,6 @@ namespace TwitchWatcher.Core
                     cfg.SetBasePath(basePath);
                     cfg.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
                     cfg.AddJsonFile("channels.json", optional: true, reloadOnChange: true);
-                    //cfg.AddUserSecrets(typeof(HostBuilderFactory).Assembly, optional: false);
                     cfg.AddEnvironmentVariables();
 
                     configureConfigExtras?.Invoke(ctx, cfg);

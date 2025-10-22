@@ -12,6 +12,5 @@ namespace TwitchWatcher.Contracts
         Task<Dictionary<string, TwitchUser>> GetUsersDataByLoginsAsync(IEnumerable<string> logins, CancellationToken ct = default);
         Task<Dictionary<string, TwitchStream>> GetStreamsByUserIdsAsync(IEnumerable<string> userIds, CancellationToken ct = default);
         Task<string> GetChannelTitleAsync(string login, CancellationToken ct = default);
-        //Task<string> GetChannelImageUrlAsync(string login, CancellationToken ct = default);
     }
 }

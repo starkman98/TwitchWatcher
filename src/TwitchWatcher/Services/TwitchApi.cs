@@ -76,14 +76,6 @@ namespace TwitchWatcher.Services
             {
                 foreach (var user in result.Data)
                 {
-                    // map fields from the UsersResponse user object to TwitchUser
-                    //var tu = new TwitchUser
-                    //{
-                    //    Id = u.Id ?? string.Empty,
-                    //    Login = (u.Login ?? string.Empty).ToLowerInvariant(),
-                    //    DisplayName = u.DisplayName ?? string.Empty,
-                    //    ProfileImageUrl = u.ProfileImageUrl ?? string.Empty
-                    //};
                     map[user.Login] = user;
                 }
             }
@@ -161,36 +153,6 @@ namespace TwitchWatcher.Services
 
             return result.Data[0].Title;
         }
-
-        //public async Task<string> GetChannelImageUrlAsync(string login, CancellationToken ct = default)
-        //{
-        //    var userId = await GetUserIdAsync(login, ct);
-
-        //    var token = await _auth.GetTokenAsync(ct);
-
-        //    var client = _httpClientFactory.CreateClient("TwitchHelix");
-        //    var request = BuildUserRequest(login, token);
-        //    var response = await client.SendAsync(request, ct);
-
-        //    if (response.StatusCode == HttpStatusCode.Unauthorized)
-        //    {
-        //        token = await _auth.GetTokenAsync(ct);
-        //        request = BuildUserRequest(login, token);
-        //        response = await client.SendAsync(request, ct);
-        //    }
-
-        //    response.EnsureSuccessStatusCode();
-
-        //    using var stream = await response.Content.ReadAsStreamAsync(ct);
-        //    var result = await JsonSerializer.DeserializeAsync<StreamsResponse>(stream, cancellationToken: ct);
-
-        //    if (result?.Data == null || result.Data.Count == 0) return string.Empty;
-
-        //    var url = result.Data[0].ImageUrl.Replace("300", "70");
-          
-
-        //    return url;
-        //}
 
         public async Task<bool> IsLiveAsync(string userId, CancellationToken ct = default)
         {

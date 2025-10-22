@@ -21,12 +21,13 @@ using TwitchWatcher.Contracts;
 
 namespace TwitchWatcher.WPF.ViewModels
 {
-    public partial class MainViewModel : ViewModelBase /*, IChannelStateUpdater, IChannelTitleUpdater, IChannelImageUrlUpdater*/
+    public partial class MainViewModel : ViewModelBase
     {
         private readonly IOptionsMonitor<AppOptions> _monitor;
         private readonly IWritableOptions<AppOptions> _writable;
         private readonly IChannelDataStore _store;
         private readonly ITwitchApi _api;
+        private readonly MultiChannelWatcher _watcher;
 
         public ObservableCollection<ChannelConfig> Channels { get; } = new();
 
@@ -44,12 +45,17 @@ namespace TwitchWatcher.WPF.ViewModels
         public IAsyncRelayCommand RemoveCommand { get; private set; }
         public ICommand SaveCommand { get; private set; }
 
-        public MainViewModel (IOptionsMonitor<AppOptions> monitor, IWritableOptions<AppOptions> writable, IChannelDataStore store, ITwitchApi api)
+        public MainViewModel (IOptionsMonitor<AppOptions> monitor,
+                                IWritableOptions<AppOptions> writable,
+                                IChannelDataStore store,
+                                ITwitchApi api,
+                                MultiChannelWatcher watcher)
         {
             _monitor = monitor;
             _writable = writable;
             _store = store;
             _api = api;
+            _watcher = watcher;
             
             SyncFromOptions(_monitor.CurrentValue);
             _monitor.OnChange(options =>
@@ -83,17 +89,24 @@ namespace TwitchWatcher.WPF.ViewModels
             {
                 var login = (channel.Login ?? string.Empty).Trim().ToLowerInvariant();
 
+                channel.IsNotFound = false;
+
                 if (users.TryGetValue(login, out var user))
                 {
                     channel.DisplayName = user.DisplayName;
                     channel.ImageUrl = user.ProfileImageUrl.Replace("300", "70");
+                }
+                else
+                {
+                    channel.IsNotFound = true;
+                    continue;
                 }
 
                 if (user != null && streams.TryGetValue(user.Id, out var stream))
                 {
                     channel.Title = stream.Title ?? channel.Title;
                     channel.ViewerCount = stream.ViewerCount;
-                    channel.State = string.Equals(stream.Type,"live", StringComparison.OrdinalIgnoreCase)
+                    channel.State = string.Equals(stream.Type, "live", StringComparison.OrdinalIgnoreCase)
                         ? StreamState.Live
                         : StreamState.Offline;
                 }
@@ -102,17 +115,6 @@ namespace TwitchWatcher.WPF.ViewModels
 
         private void SyncFromOptions(AppOptions options)
         {
-            //Channels.Clear();
-
-            //foreach (var c in options.Channels
-            //    .Where(c => !string.IsNullOrWhiteSpace(c.Login))
-            //    .GroupBy(c => c.Login, StringComparer.OrdinalIgnoreCase)
-            //    .Select(g => g.First())
-            //    .OrderBy(c => c.Login))
-            //{
-            //    Channels.Add(new ChannelConfig { Login = c.Login });
-            //}
-
             var savedLogins = options.Channels
                 .Where(c => !string.IsNullOrWhiteSpace(c.Login))
                 .GroupBy(c => c.Login, StringComparer.OrdinalIgnoreCase)
@@ -155,7 +157,7 @@ namespace TwitchWatcher.WPF.ViewModels
             }
         }
 
-        private async Task AddAsync()
+        private async Task AddAsync(CancellationToken ct)
         {
             var login = NewLogin.Trim().ToLowerInvariant();
             if (string.IsNullOrWhiteSpace(login)) return;
@@ -166,17 +168,23 @@ namespace TwitchWatcher.WPF.ViewModels
             CommandManager.InvalidateRequerySuggested();
             RefreshFromStore();
 
-            await SaveAsync();
+            await SaveAsync(ct);
         }
 
-        private async Task RemoveAsync()
+        private async Task RemoveAsync(CancellationToken ct)
         {
             if (Selected is null) return;
+
+            var login = (Selected.Login ?? string.Empty).Trim().ToLowerInvariant();
+
             Channels.Remove(Selected);
             Selected = null;
             CommandManager.InvalidateRequerySuggested();
+            
+            try { await _watcher.ClosePlayerAsync(login, ct); }
+            catch { }
 
-            await SaveAsync();
+            await SaveAsync(ct);
         }
 
         private void Save()
@@ -195,7 +203,7 @@ namespace TwitchWatcher.WPF.ViewModels
             RefreshFromStore();
         }
 
-        private async Task SaveAsync()
+        private async Task SaveAsync(CancellationToken ct)
         {
             _writable.Update(options =>
             {
@@ -216,11 +224,25 @@ namespace TwitchWatcher.WPF.ViewModels
 
             try
             {
-                var usersMap = await _api.GetUsersDataByLoginsAsync(logins);
+                var usersMap = await _api.GetUsersDataByLoginsAsync(logins, ct);
                 if (usersMap != null && usersMap.Count > 0)
                 {
                     _store.SetUsers(usersMap.Values);
                 }
+
+                foreach (var channel in Channels)
+                {
+                    if (!usersMap.Keys.Contains(channel.Login.Trim().ToLowerInvariant()))
+                    {
+                        channel.IsNotFound = true;
+                        channel.DisplayName = "NotFound";
+                    }
+                    else
+                    {
+                        channel.IsNotFound = false;
+                    }
+                }
+
 
                 var userIds = usersMap?.Values
                     .Select(u => u.Id)
@@ -230,7 +252,7 @@ namespace TwitchWatcher.WPF.ViewModels
 
                 if (userIds.Count > 0)
                 {
-                    var streamsMap = await _api.GetStreamsByUserIdsAsync(userIds);
+                    var streamsMap = await _api.GetStreamsByUserIdsAsync(userIds, ct);
                     if (streamsMap != null)
                     {
                         _store.SetStreams(streamsMap.Values);
@@ -244,50 +266,5 @@ namespace TwitchWatcher.WPF.ViewModels
             else
                 RefreshFromStore();
         }
-
-        //public void UpdateChannelState(string login, StreamState state)
-        //{
-        //    if (!Application.Current.Dispatcher.CheckAccess())
-        //    {
-        //        Application.Current.Dispatcher.Invoke(() => UpdateChannelState(login, state));
-        //        return;
-        //    }
-
-        //    var channel = Channels.FirstOrDefault(c => c.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
-        //    if (channel != null)
-        //    {
-        //        channel.State = state;
-        //    }
-        //}
-
-        //public void UpdateChannelTitle(string login, string title)
-        //{
-        //    if (!Application.Current.Dispatcher.CheckAccess())
-        //    {
-        //        Application.Current.Dispatcher.Invoke(() => UpdateChannelTitle(login, title));
-        //        return;
-        //    }
-
-        //    var channel = Channels.FirstOrDefault(c => c.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
-        //    if (channel != null)
-        //    {
-        //        channel.Title = title;
-        //    }
-        //}
-
-        //public void UpdateChannelImageUrl(string login, string imageUrl)
-        //{
-        //    if (!Application.Current.Dispatcher.CheckAccess())
-        //    {
-        //        Application.Current.Dispatcher.Invoke(() => UpdateChannelTitle(login, imageUrl));
-        //        return;
-        //    }
-
-        //    var channel = Channels.FirstOrDefault(c => c.Login.Equals(login, StringComparison.OrdinalIgnoreCase));
-        //    if (channel != null)
-        //    {
-        //        channel.ImageUrl = imageUrl;
-        //    }
-        //}
     }
 }
