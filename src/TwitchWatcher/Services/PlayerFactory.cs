@@ -23,7 +23,7 @@ namespace TwitchWatcher.Services
         public IPlayerService Create(string login)
         {
             var normalized = Normalize(login);
-            var profilePath = BuildProfilePath(normalized, _options.ProfileRootPath);
+            var profilePath = BuildProfilePath(normalized);
 
             var logger = _loggerFactory.CreateLogger<PlayerService>();
 
@@ -32,7 +32,7 @@ namespace TwitchWatcher.Services
 
         private static string Normalize(string s) => (s ?? string.Empty).Trim().ToLowerInvariant();
 
-        private static string BuildProfilePath(string login, string? configuredRoot)
+        private static string BuildProfilePath(string login)
         {
             string root;
 

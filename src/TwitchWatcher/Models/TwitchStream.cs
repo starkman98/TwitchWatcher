@@ -18,6 +18,7 @@ namespace TwitchWatcher.Models
         [JsonPropertyName("viewer_count")] public int ViewerCount { get; set; }
 
         [JsonPropertyName("thumbnail_url")] public string ThumbnailUrl { get; set; }
+        [JsonPropertyName("game_name")] public string GameName { get; set; }
 
         public StreamState State { get; set; }
 

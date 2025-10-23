@@ -95,6 +95,20 @@ namespace TwitchWatcher.Configuration
             }
         }
 
+        private string _gameName;
+        public string GameName
+        {
+            get => _gameName;
+            set
+            {
+                if (_gameName != value)
+                {
+                    _gameName = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GameName)));
+                }
+            }
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
     }
 }

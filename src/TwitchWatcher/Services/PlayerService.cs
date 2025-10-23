@@ -16,7 +16,7 @@ namespace TwitchWatcher.Services
     {
         private Process? _process;
         private readonly AppOptions _options;
-        private readonly string _login;
+        private readonly string? _login;
         private string? _profilePath = string.Empty;
         private readonly ILogger<PlayerService> _log;
 
@@ -136,29 +136,6 @@ namespace TwitchWatcher.Services
             return Task.CompletedTask;
 
 
-        }
-
-        private static string NormalizeChannel(string channel)
-        {
-            var normalized = (channel ?? "").Trim().ToLowerInvariant();
-            var invalid = Path.GetInvalidFileNameChars();
-            var sb = new StringBuilder(normalized.Length);
-            foreach (var ch in normalized)
-            {
-                sb.Append(invalid.Contains(ch) ? '_' : ch);
-            }
-            return sb.ToString();
-        }
-
-        private string GetProfilePath(string channel, string? configuredRoot = null)
-        {
-            var root = string.IsNullOrWhiteSpace(configuredRoot)
-                ? Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "TwitchWatcher", "profiles")
-                : Path.GetFullPath(configuredRoot);
-            var safeChannel = NormalizeChannel(channel);
-            return Path.Combine(root, safeChannel);
         }
 
         private int? TryFindChromePidForProfile(string profilePath)

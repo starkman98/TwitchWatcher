@@ -9,7 +9,6 @@ using System.Text.Json;
 using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm;
-using TwitchWatcher.Configuration;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TwitchWatcher.WPF.Infrastructure.Configuration;
@@ -18,6 +17,7 @@ using TwitchWatcher.Models;
 using TwitchWatcher.Core.Contracts;
 using TwitchWatcher.Services;
 using TwitchWatcher.Contracts;
+using TwitchWatcher.Configuration;
 
 namespace TwitchWatcher.WPF.ViewModels
 {
@@ -38,8 +38,6 @@ namespace TwitchWatcher.WPF.ViewModels
         private string _newLogin = "";
         public string NewLogin { get => _newLogin; 
             set { Set(ref _newLogin, value); AddCommand?.NotifyCanExecuteChanged(); } }
-
-        private bool _isSyncing;
 
         public IAsyncRelayCommand AddCommand { get; private set; }
         public IAsyncRelayCommand RemoveCommand { get; private set; }
@@ -106,6 +104,7 @@ namespace TwitchWatcher.WPF.ViewModels
                 {
                     channel.Title = stream.Title ?? channel.Title;
                     channel.ViewerCount = stream.ViewerCount;
+                    channel.GameName = stream.GameName;
                     channel.State = string.Equals(stream.Type, "live", StringComparison.OrdinalIgnoreCase)
                         ? StreamState.Live
                         : StreamState.Offline;
@@ -163,12 +162,21 @@ namespace TwitchWatcher.WPF.ViewModels
             if (string.IsNullOrWhiteSpace(login)) return;
             if (Channels.Any(c => c.Login.Equals(login, StringComparison.OrdinalIgnoreCase))) return;
 
+            
+
             Channels.Add(new ChannelConfig { Login = login });
             NewLogin = "";
             CommandManager.InvalidateRequerySuggested();
             RefreshFromStore();
 
             await SaveAsync(ct);
+
+            var channel = Channels.FirstOrDefault(c => c.Login == login);
+            if (channel.IsNotFound)
+            {
+                Selected = channel;
+                try { await RemoveAsync(ct); } catch { }
+            }
         }
 
         private async Task RemoveAsync(CancellationToken ct)
@@ -180,28 +188,12 @@ namespace TwitchWatcher.WPF.ViewModels
             Channels.Remove(Selected);
             Selected = null;
             CommandManager.InvalidateRequerySuggested();
-            
-            try { await _watcher.ClosePlayerAsync(login, ct); }
-            catch { }
+
+            try { await _watcher.ClosePlayerAsync(login, ct); } catch { }
 
             await SaveAsync(ct);
         }
 
-        private void Save()
-        {
-            _writable.Update(options =>
-            {
-                options.Channels = Channels
-                .Where(c => !string.IsNullOrWhiteSpace(c.Login))
-                .GroupBy(c => c.Login, StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First())
-                .OrderBy(c => c.Login)
-                .ToList();
-            });
-            CommandManager.InvalidateRequerySuggested();
-
-            RefreshFromStore();
-        }
 
         private async Task SaveAsync(CancellationToken ct)
         {
@@ -235,7 +227,7 @@ namespace TwitchWatcher.WPF.ViewModels
                     if (!usersMap.Keys.Contains(channel.Login.Trim().ToLowerInvariant()))
                     {
                         channel.IsNotFound = true;
-                        channel.DisplayName = "NotFound";
+                        channel.DisplayName = $"{channel.Login}: NotFound";
                     }
                     else
                     {

@@ -16,6 +16,7 @@
         <Color x:Key="Clr.Danger">#EF4444</Color>
         <Color x:Key="Clr.RowHover">#33353A</Color>
         <Color x:Key="Clr.Selection">#3D5A9E</Color>
+        <Color x:Key="Clr.Live">#FF0000</Color>
 
         <!-- ===== Brushes ===== -->
         <SolidColorBrush x:Key="Brush.BaseBg" Color="{StaticResource Clr.BaseBg}"/>
@@ -29,6 +30,7 @@
         <SolidColorBrush x:Key="Brush.Danger"  Color="{StaticResource Clr.Danger}"/>
         <SolidColorBrush x:Key="Brush.RowHover" Color="{StaticResource Clr.RowHover}"/>
         <SolidColorBrush x:Key="Brush.Selection" Color="{StaticResource Clr.Selection}"/>
+        <SolidColorBrush x:Key="Brush.Live" Color="{StaticResource Clr.Live}"/>
 
         <!-- Global defaults -->
         <Style TargetType="Window">
@@ -198,38 +200,153 @@
             <Setter Property="Padding" Value="12,0"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+
+            <Style.Triggers>
+                <!-- When the cell itself is selected, keep it transparent -->
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="Transparent"/>
+                </Trigger>
+
+                <!-- When the whole row is selected, keep cells transparent too -->
+                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                    <Setter Property="Background" Value="Transparent"/>
+                </DataTrigger>
+
+                <!-- Also don't tint on hover at the cell level -->
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="Transparent"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
-        <Style TargetType="DataGridRow">
-            <Setter Property="SnapsToDevicePixels" Value="True"/>
-            <!--Setter Property="Background" Value="{StaticResource Brush.PanelBg}"/-->
+
+        <!-- 1) Remove default white ToolTip chrome -->
+        <Style TargetType="ToolTip">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Margin" Value="0"/>
-            <Setter Property="Padding" Value="0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HasDropShadow" Value="False"/>
+            <!--Setter Property="AllowsTransparency" Value="True"/-->
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="DataGridRow">
-                        <!--Border x:Name="Bg" Background="{TemplateBinding Background}"-->
-                            <Border x:Name="Bg" Background="Transparent">
-                                <DataGridCellsPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource Brush.RowHover}"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bg" Property="Background" Value="#2E3E61"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
+                    <ControlTemplate TargetType="ToolTip">
+                        <!-- Only render the content you provide (your dark Border) -->
+                        <ContentPresenter/>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
 
+        <!-- 2) TextBox style used inside the tooltip: no border, no focus visual -->
+        <Style x:Key="ToolTipTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.Text}"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <!-- Minimal host; nothing else paints -->
+                        <ScrollViewer x:Name="PART_ContentHost" Background="Transparent"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+
+        <Style TargetType="DataGridRow">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <!--Setter Property="Background" Value="{StaticResource Brush.PanelBg}"/-->
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Margin" Value="4,2"/>
+            <Setter Property="Padding" Value="0"/>
+
+            <Setter Property="ToolTip" Value="{x:Null}"/>
+            <Setter Property="ToolTipService.Placement" Value="Mouse"/>
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridRow">
+                        <!--Border x:Name="Bg" Background="{TemplateBinding Background}"-->
+                            <Border x:Name="Bg" 
+                                    CornerRadius="8"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="Transparent"
+                                    BorderThickness="1"
+                                    SnapsToDevicePixels="True"
+                                    ClipToBounds="True">
+                                <DataGridCellsPresenter/>
+                        </Border>
+                        
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{StaticResource Brush.RowHover}"/>
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource Brush.Border}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bg"  Property="Background" Value="#2E3E61"/>
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{StaticResource Brush.Accent}"/>
+                            </Trigger>
+
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bg" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            
+            <!--Setter Property="ToolTipService.Placement" Value="Mouse"/>
+            <Setter Property="ToolTip">
+                <Setter.Value>
+                    <ToolTip StaysOpen="True" MaxWidth="600">
+                        <Border Padding="8" CornerRadius="6" Background="{StaticResource Brush.PanelBg}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1">
+                            <TextBox Style="{StaticResource ToolTipTextBoxStyle}"
+                                       Text="{Binding Title}"
+                                       IsReadOnly="True"
+                                       TextWrapping="WrapWithOverflow"
+                                       AcceptsReturn="True"
+                                       MaxWidth="560"
+                                       Focusable="False"/>
+                        </Border>
+                    </ToolTip>
+                </Setter.Value>
+            </Setter-->
+
+            <Style.Triggers>
+                <!-- Only when the row's State == Live do we create the tooltip -->
+                <DataTrigger Binding="{Binding State}" Value="Live">
+                    <Setter Property="ToolTip">
+                        <Setter.Value>
+                            <ToolTip StaysOpen="True" MaxWidth="600">
+                                <Border Padding="18"
+                                CornerRadius="6"
+                                Background="{StaticResource Brush.PanelBg}"
+                                BorderBrush="{StaticResource Brush.Border}"
+                                BorderThickness="1">
+                                    <TextBox Style="{StaticResource ToolTipTextBoxStyle}"
+                                     Text="{Binding Title}"
+                                     IsReadOnly="True"
+                                     TextWrapping="WrapWithOverflow"
+                                     AcceptsReturn="True"
+                                     MaxWidth="560"/>
+                                </Border>
+                            </ToolTip>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+            </Style.Triggers>
+
+        </Style>
+
         <!-- Small circle used for state dots -->
         <Style x:Key="StateDot" TargetType="Ellipse">
-            <Setter Property="Width" Value="10"/>
-            <Setter Property="Height" Value="10"/>
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="Height" Value="8"/>
             <Setter Property="Fill" Value="Gray"/>
             <Setter Property="Margin" Value="0,0,6,0"/>
         </Style>
