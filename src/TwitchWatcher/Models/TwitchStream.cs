@@ -19,6 +19,7 @@ namespace TwitchWatcher.Models
 
         [JsonPropertyName("thumbnail_url")] public string ThumbnailUrl { get; set; }
         [JsonPropertyName("game_name")] public string GameName { get; set; }
+        [JsonPropertyName("started_at")] public string StartedAt { get; set; }
 
         public StreamState State { get; set; }
 

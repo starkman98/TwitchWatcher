@@ -18,6 +18,7 @@ using TwitchWatcher.Core.Contracts;
 using TwitchWatcher.Services;
 using TwitchWatcher.Contracts;
 using TwitchWatcher.Configuration;
+using System.Windows.Threading;
 
 namespace TwitchWatcher.WPF.ViewModels
 {
@@ -28,6 +29,8 @@ namespace TwitchWatcher.WPF.ViewModels
         private readonly IChannelDataStore _store;
         private readonly ITwitchApi _api;
         private readonly MultiChannelWatcher _watcher;
+
+        private DispatcherTimer _updateTimer;
 
         public ObservableCollection<ChannelConfig> Channels { get; } = new();
 
@@ -66,6 +69,8 @@ namespace TwitchWatcher.WPF.ViewModels
             AddCommand = new AsyncRelayCommand(AddAsync, () => !string.IsNullOrWhiteSpace(NewLogin));
             RemoveCommand = new AsyncRelayCommand(RemoveAsync, () => Selected != null);
             SaveCommand = new AsyncRelayCommand(SaveAsync, () => true);
+
+            InitializeUptimeTimer();
         }
 
         public void Store_DataChanged(object? sender, EventArgs e)
@@ -105,6 +110,9 @@ namespace TwitchWatcher.WPF.ViewModels
                     channel.Title = stream.Title ?? channel.Title;
                     channel.ViewerCount = stream.ViewerCount;
                     channel.GameName = stream.GameName;
+                    channel.StartedAt = stream.StartedAt;
+                    channel.RefreshUptime();
+                    channel.ThumbnailUrl = stream.ThumbnailUrl.Replace("{width}", "426").Replace("{height}", "240");
                     channel.State = string.Equals(stream.Type, "live", StringComparison.OrdinalIgnoreCase)
                         ? StreamState.Live
                         : StreamState.Offline;
@@ -257,6 +265,25 @@ namespace TwitchWatcher.WPF.ViewModels
                 App.Current.Dispatcher.Invoke(RefreshFromStore);
             else
                 RefreshFromStore();
+        }
+
+        public void InitializeUptimeTimer()
+        {
+            _updateTimer = new DispatcherTimer(DispatcherPriority.Normal)
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _updateTimer.Tick += (s, e) =>
+            {
+                foreach (var channel in Channels)
+                {
+                    if (channel.State == StreamState.Live)
+                    {
+                        channel.RefreshUptime();
+                    }
+                }
+            };
+            _updateTimer.Start();
         }
     }
 }

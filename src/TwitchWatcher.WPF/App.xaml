@@ -323,17 +323,16 @@
                     <Setter Property="ToolTip">
                         <Setter.Value>
                             <ToolTip StaysOpen="True" MaxWidth="600">
-                                <Border Padding="18"
-                                CornerRadius="6"
-                                Background="{StaticResource Brush.PanelBg}"
-                                BorderBrush="{StaticResource Brush.Border}"
-                                BorderThickness="1">
-                                    <TextBox Style="{StaticResource ToolTipTextBoxStyle}"
-                                     Text="{Binding Title}"
-                                     IsReadOnly="True"
-                                     TextWrapping="WrapWithOverflow"
-                                     AcceptsReturn="True"
-                                     MaxWidth="560"/>
+                                <Border Padding="0"
+                                        Width="426"
+                                        Height="240"
+                                        CornerRadius="6"
+                                        Background="Transparent">
+                                    <Image Source="{Binding ThumbnailUrl}">
+                                        <Image.Clip>
+                                            <RectangleGeometry RadiusX="20" RadiusY="20" Rect="0,0,426,240"/>
+                                        </Image.Clip>
+                                    </Image>
                                 </Border>
                             </ToolTip>
                         </Setter.Value>

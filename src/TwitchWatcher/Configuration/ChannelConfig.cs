@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection;
 using System.Text;
+using System.Xml;
 using TwitchWatcher.Models;
 
 namespace TwitchWatcher.Configuration
@@ -81,6 +82,20 @@ namespace TwitchWatcher.Configuration
             }
         }
 
+        private string _thumbnailUrl;
+        public string ThumbnailUrl
+        {
+            get => _thumbnailUrl;
+            set
+            {
+                if (_thumbnailUrl != value)
+                {
+                    _thumbnailUrl = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ThumbnailUrl)));
+                }
+            }
+        }
+
         private bool _isNotFound;
         public bool IsNotFound
         {
@@ -107,6 +122,61 @@ namespace TwitchWatcher.Configuration
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(GameName)));
                 }
             }
+        }
+
+        public string _startedAt;
+        public string StartedAt
+        {
+            get => _startedAt;
+            set
+            {
+                if (_startedAt != value)
+                {
+                    _startedAt = value;
+                    _startedAtDto = ParseStartedAt(_startedAt);
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(StartedAt)));
+                    RefreshUptime();
+                }
+            }
+        }
+
+        private DateTimeOffset? _startedAtDto;
+
+        public TimeSpan UpTime
+        {
+            get
+            {
+                if (_startedAtDto is null) return TimeSpan.Zero;
+                var now = DateTimeOffset.UtcNow;
+                return now - _startedAtDto.Value;
+            }
+        }
+
+        public string DisplayUpTime
+        {
+            get
+            { 
+                var timeSpan = UpTime;
+                if (timeSpan <= TimeSpan.Zero) return string.Empty;
+
+                return timeSpan.ToString(@"hh\:mm\:ss");
+            }
+        }
+
+        public void RefreshUptime()
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UpTime)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayUpTime)));
+        }
+
+        private DateTimeOffset? ParseStartedAt(string startedAt)
+        {
+            if (string.IsNullOrWhiteSpace(startedAt)) return null;
+            if (DateTimeOffset.TryParse(startedAt, out var dto))
+                return dto.ToUniversalTime();
+            if (DateTime.TryParse(startedAt, out var dt))
+                return new DateTimeOffset(dt).ToUniversalTime();
+            return null;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
